@@ -1111,3 +1111,185 @@ body {
     }
 
 }
+
+/* =====================================================
+   BLOQUEIO POR SENHA
+====================================================== */
+
+.tela-senha {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    background:
+        radial-gradient(
+            circle at top,
+            rgba(201, 168, 93, 0.12),
+            transparent 35%
+        ),
+        #050505;
+}
+
+.senha-card {
+    width: min(100%, 420px);
+
+    padding: 42px 34px;
+
+    text-align: center;
+
+    background: rgba(15, 15, 15, 0.96);
+
+    border: 1px solid rgba(201, 168, 93, 0.35);
+
+    border-radius: 22px;
+
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.senha-logo {
+    width: 64px;
+    height: 64px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 22px;
+
+    border-radius: 18px;
+
+    border: 1px solid #c9a85d;
+
+    background: #0a0a0a;
+
+    color: #c9a85d;
+
+    font-size: 22px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+.senha-eyebrow {
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: #c9a85d;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 2px;
+}
+
+.senha-card h2 {
+    margin: 0 0 10px;
+
+    color: #fff;
+
+    font-size: 26px;
+}
+
+.senha-card p {
+    margin: 0 0 28px;
+
+    color: #999;
+
+    font-size: 14px;
+}
+
+.senha-campo {
+    text-align: left;
+}
+
+.senha-campo label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #ddd;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.senha-campo input {
+    width: 100%;
+
+    padding: 14px 16px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #292929;
+
+    border-radius: 10px;
+
+    outline: none;
+
+    background: #080808;
+
+    color: #fff;
+
+    font-family: inherit;
+    font-size: 15px;
+
+    transition: 0.2s;
+}
+
+.senha-campo input:focus {
+    border-color: #c9a85d;
+
+    box-shadow:
+        0 0 0 3px rgba(201, 168, 93, 0.08);
+}
+
+.btn-senha {
+    width: 100%;
+
+    margin-top: 18px;
+
+    padding: 14px 20px;
+
+    border: 0;
+    border-radius: 10px;
+
+    background: #c9a85d;
+
+    color: #050505;
+
+    font-family: inherit;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.btn-senha:hover {
+    background: #e2c477;
+
+    transform: translateY(-1px);
+}
+
+.erro-senha {
+    min-height: 20px;
+
+    margin-top: 14px;
+
+    color: #e57373;
+
+    font-size: 13px;
+}

@@ -1,4 +1,59 @@
-"use strict";
+/* =====================================================
+   PROTEÇÃO POR SENHA
+====================================================== */
+
+(function () {
+
+    "use strict";
+
+    const SENHA_CORRETA = "222530";
+
+    const telaSenha = document.getElementById("tela-senha");
+    const formSenha = document.getElementById("form-senha");
+    const campoSenha = document.getElementById("senha-acesso");
+    const erroSenha = document.getElementById("erro-senha");
+
+    if (!telaSenha || !formSenha) {
+        return;
+    }
+
+    // Verifica se já foi desbloqueado nesta sessão
+    if (sessionStorage.getItem("lista_autorizada") === "true") {
+
+        telaSenha.remove();
+
+        return;
+    }
+
+    formSenha.addEventListener("submit", function (event) {
+
+        event.preventDefault();
+
+        const senha = campoSenha.value.trim();
+
+        if (senha === SENHA_CORRETA) {
+
+            sessionStorage.setItem(
+                "lista_autorizada",
+                "true"
+            );
+
+            telaSenha.remove();
+
+        } else {
+
+            erroSenha.textContent =
+                "Senha incorreta. Tente novamente.";
+
+            campoSenha.value = "";
+
+            campoSenha.focus();
+
+        }
+
+    });
+
+})();
 
 
 /* =========================================================

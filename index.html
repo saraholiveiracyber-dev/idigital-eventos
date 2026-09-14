@@ -510,5 +510,63 @@
 
 
 </body>
+<!-- =====================================================
+     BLOQUEIO POR SENHA
+====================================================== -->
 
+<div id="tela-senha" class="tela-senha">
+
+    <div class="senha-card">
+
+        <div class="senha-logo">
+            <span>OK</span>
+        </div>
+
+        <span class="senha-eyebrow">
+            ACESSO RESTRITO
+        </span>
+
+        <h2>
+            Lista de Convidados
+        </h2>
+
+        <p>
+            Digite a senha para acessar a lista.
+        </p>
+
+        <form id="form-senha">
+
+            <div class="senha-campo">
+
+                <label for="senha-acesso">
+                    Senha
+                </label>
+
+                <input
+                    type="password"
+                    id="senha-acesso"
+                    placeholder="Digite a senha"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn-senha"
+            >
+                ENTRAR
+            </button>
+
+            <div
+                id="erro-senha"
+                class="erro-senha"
+            ></div>
+
+        </form>
+
+    </div>
+
+</div>
 </html>
