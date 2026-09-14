@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Lista de convidados e confirmação de presença."
+    >
+
+    <title>
+        Lista de Convidados | 24/10/2026
+    </title>
+
+
+    <!-- =====================================================
+         FONTE
+    ====================================================== -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- =====================================================
+         SUPABASE
+    ====================================================== -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+        defer
+    ></script>
+
+
+    <!-- =====================================================
+         CSS
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         FUNDO
+    ====================================================== -->
+
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+
+
+    <!-- =====================================================
+         CONTAINER PRINCIPAL
+    ====================================================== -->
+
+    <main class="app">
+
+
+        <!-- =================================================
+             HEADER
+        ================================================== -->
+
+        <header class="header">
+
+            <div class="header-top">
+
+                <span class="event-tag">
+                    ANIVERSÁRIO
+                </span>
+
+                <span class="event-date">
+                    24 • 10 • 2026
+                </span>
+
+            </div>
+
+
+            <h1>
+                Lista de Convidados
+            </h1>
+
+
+            <p>
+                Gerencie os convidados e confirme a presença.
+            </p>
+
+        </header>
+
+
+        <!-- =================================================
+             SELEÇÃO DO ANIVERSARIANTE
+        ================================================== -->
+
+        <nav
+            class="tabs"
+            aria-label="Selecionar aniversariante"
+        >
+
+            <button
+                type="button"
+                class="tab ativo"
+                data-aniversariante="sarah"
+            >
+
+                <span class="tab-label">
+                    ANIVERSARIANTE
+                </span>
+
+                <strong>
+                    SARAH
+                </strong>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="tab"
+                data-aniversariante="jeice"
+            >
+
+                <span class="tab-label">
+                    ANIVERSARIANTE
+                </span>
+
+                <strong>
+                    JEICE
+                </strong>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="tab"
+                data-aniversariante="ione"
+            >
+
+                <span class="tab-label">
+                    ANIVERSARIANTE
+                </span>
+
+                <strong>
+                    IONE
+                </strong>
+
+            </button>
+
+        </nav>
+
+
+        <!-- =================================================
+             MENSAGEM DO SISTEMA
+        ================================================== -->
+
+        <div
+            id="mensagem"
+            class="mensagem"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+
+        <!-- =================================================
+             PAINEL
+        ================================================== -->
+
+        <section class="painel">
+
+
+            <!-- =================================================
+                 CABEÇALHO DA LISTA
+            ================================================== -->
+
+            <div class="painel-header">
+
+                <div>
+
+                    <span class="eyebrow">
+                        LISTA DE CONVIDADOS
+                    </span>
+
+                    <h2 id="nome-aniversariante">
+                        Sarah
+                    </h2>
+
+                    <p>
+                        Até 30 convidados
+                    </p>
+
+                </div>
+
+
+                <div class="limite">
+
+                    <span>
+                        CONVIDADOS
+                    </span>
+
+                    <strong>
+
+                        <span id="contador">
+                            0
+                        </span>
+
+                        <small>
+                            / 30
+                        </small>
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ESTATÍSTICAS
+            ================================================== -->
+
+            <div class="stats">
+
+
+                <!-- CONVIDADOS -->
+
+                <div class="stat">
+
+                    <span>
+                        CONVIDADOS
+                    </span>
+
+                    <strong id="total">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <!-- CONFIRMADOS -->
+
+                <div class="stat confirmado-stat">
+
+                    <span>
+                        CONFIRMADOS
+                    </span>
+
+                    <strong id="total-confirmados">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <!-- ACOMPANHANTES -->
+
+                <div class="stat acompanhante-stat">
+
+                    <span>
+                        ACOMPANHANTES
+                    </span>
+
+                    <strong id="total-acompanhantes">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <!-- TOTAL NO EVENTO -->
+
+                <div class="stat evento-stat">
+
+                    <span>
+                        TOTAL NO EVENTO
+                    </span>
+
+                    <strong id="total-evento">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <!-- PENDENTES -->
+
+                <div class="stat pendente-stat">
+
+                    <span>
+                        PENDENTES
+                    </span>
+
+                    <strong id="total-pendentes">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <!-- VAGAS -->
+
+                <div class="stat vaga-stat">
+
+                    <span>
+                        VAGAS
+                    </span>
+
+                    <strong id="total-vagas">
+                        30
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 ADICIONAR CONVIDADO
+            ================================================== -->
+
+            <section class="adicionar">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            NOVO CONVIDADO
+                        </span>
+
+                        <h3>
+                            Adicionar à lista
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <form
+                    id="form-convidado"
+                    class="form"
+                >
+
+                    <div class="campo">
+
+                        <label for="nome">
+                            Nome do convidado
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nome"
+                            name="nome"
+                            placeholder="Digite o nome completo"
+                            maxlength="100"
+                            autocomplete="off"
+                            required
+                        >
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        id="btn-salvar"
+                    >
+
+                        <span>
+                            +
+                        </span>
+
+                        SALVAR CONVIDADO
+
+                    </button>
+
+                </form>
+
+            </section>
+
+
+            <!-- =================================================
+                 TODOS OS CONVIDADOS
+            ================================================== -->
+
+            <section class="lista-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            CADASTRADOS
+                        </span>
+
+                        <h3>
+                            Todos os convidados
+                        </h3>
+
+                    </div>
+
+
+                    <span class="badge badge-pendente">
+                        LISTA
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="lista-convidados"
+                    class="lista"
+                ></div>
+
+            </section>
+
+
+            <!-- =================================================
+                 CONFIRMADOS
+            ================================================== -->
+
+            <section class="lista-section confirmados-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            PRESENÇA
+                        </span>
+
+                        <h3>
+                            Confirmaram presença
+                        </h3>
+
+                    </div>
+
+
+                    <span class="badge badge-confirmado">
+                        CONFIRMADOS
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="lista-confirmados"
+                    class="lista"
+                ></div>
+
+            </section>
+
+
+        </section>
+
+
+        <!-- =================================================
+             FOOTER
+        ================================================== -->
+
+        <footer class="footer">
+
+            <span>
+                ANIVERSÁRIO • 24 DE OUTUBRO DE 2026
+            </span>
+
+            <span>
+                SARAH • JEICE • IONE
+            </span>
+
+        </footer>
+
+
+    </main>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        src="script.js"
+        defer
+    ></script>
+
+
+</body>
+
+</html>
