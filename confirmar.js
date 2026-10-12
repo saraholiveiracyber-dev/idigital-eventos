@@ -3,7 +3,7 @@
 
 /* =========================================================
    CONFIRMAÇÃO DE PRESENÇA — 24/10/2026
-   Busca de nomes + seleção + confirmação + acompanhantes
+   Convidados individuais + grupo Amigos Pilates
 ========================================================= */
 
 const SUPABASE_URL = "https://wiwvpqjlwmtmlexusiyd.supabase.co";
@@ -11,6 +11,7 @@ const SUPABASE_KEY = "sb_publishable_LzX0GpaYAK2KNSu2eetEuw_tr5PKqSi";
 
 const MAX_ACOMPANHANTES = 5;
 const MIN_CARACTERES = 2;
+const NOME_GRUPO = "Amigos Pilates";
 
 let supabaseClient = null;
 let listaConvidados = [];
@@ -23,7 +24,10 @@ document.addEventListener("DOMContentLoaded", iniciar);
 
 async function iniciar() {
     if (!window.supabase?.createClient) {
-        mostrarMensagem("Não foi possível carregar o sistema. Atualize a página.", true);
+        mostrarMensagem(
+            "Não foi possível carregar o sistema. Atualize a página.",
+            true
+        );
         return;
     }
 
@@ -38,6 +42,57 @@ async function iniciar() {
 }
 
 /* =========================================================
+   UTILIDADES
+========================================================= */
+
+function normalizar(valor) {
+    return String(valor ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+}
+
+function ehConviteDoGrupo(convidado) {
+    return normalizar(convidado?.nome) === normalizar(NOME_GRUPO);
+}
+
+function nomeDoIntegrante(convidado) {
+    const nome = String(convidado?.nome ?? "").trim();
+    const sufixo = ` (${NOME_GRUPO})`;
+
+    if (nome.toLowerCase().endsWith(sufixo.toLowerCase())) {
+        return nome.slice(0, -sufixo.length).trim();
+    }
+
+    return nome;
+}
+
+function mostrarMensagem(texto, erro = false) {
+    const elemento = $("mensagem");
+    if (!elemento) return;
+
+    elemento.textContent = texto;
+    elemento.style.color = erro ? "#ff8585" : "#7edc91";
+}
+
+function limparMensagem() {
+    const elemento = $("mensagem");
+    if (elemento) elemento.textContent = "";
+}
+
+function formatarAcompanhantes(quantidade) {
+    quantidade = Number(quantidade || 0);
+
+    if (quantidade === 0) return "Você irá sozinho.";
+    if (quantidade === 1) return "Você irá com 1 acompanhante.";
+
+    return `Você irá com ${quantidade} acompanhantes.`;
+}
+
+/* =========================================================
    EVENTOS
 ========================================================= */
 
@@ -45,28 +100,36 @@ function configurarEventos() {
     $("nome")?.addEventListener("input", pesquisarNomes);
 
     $("nome")?.addEventListener("keydown", (evento) => {
-        if (evento.key === "Enter") {
-            evento.preventDefault();
+        if (evento.key !== "Enter") return;
 
-            const primeiroResultado = $("resultados-nomes")
-                ?.querySelector(".opcao-convidado");
+        evento.preventDefault();
 
-            if (primeiroResultado) {
-                primeiroResultado.click();
-            } else if (convidadoSelecionado) {
-                verificarConvidado();
-            }
+        const primeiroResultado = $("resultados-nomes")
+            ?.querySelector(".opcao-convidado");
+
+        if (primeiroResultado) {
+            primeiroResultado.click();
+        } else if (convidadoSelecionado) {
+            verificarConvidado();
         }
     });
 
-    $("btn-continuar")?.addEventListener("click", verificarConvidado);
-    $("btn-confirmar")?.addEventListener("click", confirmarPresenca);
+    $("btn-continuar")?.addEventListener(
+        "click",
+        verificarConvidado
+    );
+
+    $("btn-confirmar")?.addEventListener(
+        "click",
+        confirmarPresenca
+    );
+
     $("btn-voltar")?.addEventListener("click", voltar);
     $("btn-tentar-novamente")?.addEventListener("click", voltar);
 }
 
 /* =========================================================
-   CARREGAR LISTA
+   CARREGAR LISTA DO SUPABASE
 ========================================================= */
 
 async function carregarConvidados() {
@@ -79,7 +142,9 @@ async function carregarConvidados() {
     try {
         const { data, error } = await supabaseClient
             .from("convidados")
-            .select("id, nome, aniversariante, confirmado, acompanhantes")
+            .select(
+                "id, nome, aniversariante, confirmado, acompanhantes"
+            )
             .order("nome", { ascending: true });
 
         if (error) throw error;
@@ -87,11 +152,13 @@ async function carregarConvidados() {
         listaConvidados = data || [];
 
         if (resultados) {
-            resultados.innerHTML = "";
+            resultados.replaceChildren();
 
             const ajuda = document.createElement("p");
             ajuda.className = "ajuda-resultados";
-            ajuda.textContent = "Digite pelo menos 2 letras para encontrar seu nome.";
+            ajuda.textContent =
+                "Digite pelo menos 2 letras para encontrar seu nome.";
+
             resultados.appendChild(ajuda);
         }
     } catch (erro) {
@@ -105,22 +172,7 @@ async function carregarConvidados() {
 }
 
 /* =========================================================
-   NORMALIZAR TEXTO
-   Ignora acentos, maiúsculas e espaços extras
-========================================================= */
-
-function normalizar(valor) {
-    return String(valor ?? "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9\s]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLowerCase();
-}
-
-/* =========================================================
-   PESQUISAR NOMES ENQUANTO DIGITA
+   BUSCAR NOMES
 ========================================================= */
 
 function pesquisarNomes() {
@@ -140,22 +192,21 @@ function pesquisarNomes() {
 
     $("nome-selecionado")?.classList.add("escondido");
     limparMensagem();
-
-    resultados.innerHTML = "";
+    resultados.replaceChildren();
 
     if (busca.length < MIN_CARACTERES) {
-        const ajuda = document.createElement("p");
-        ajuda.className = "ajuda-resultados";
-        ajuda.textContent = "Digite pelo menos 2 letras para encontrar seu nome.";
-        resultados.appendChild(ajuda);
+        adicionarAjuda(
+            resultados,
+            "Digite pelo menos 2 letras para encontrar seu nome."
+        );
         return;
     }
 
     if (!listaConvidados.length) {
-        const aviso = document.createElement("p");
-        aviso.className = "ajuda-resultados";
-        aviso.textContent = "A lista não está disponível. Tente atualizar a página.";
-        resultados.appendChild(aviso);
+        adicionarAjuda(
+            resultados,
+            "A lista não está disponível. Tente atualizar a página."
+        );
         return;
     }
 
@@ -163,29 +214,46 @@ function pesquisarNomes() {
 
     const encontrados = listaConvidados.filter((convidado) => {
         const nome = normalizar(convidado.nome);
-        const palavrasNome = nome.split(" ");
+        const palavras = nome.split(" ");
 
         return termos.every((termo) =>
             nome.includes(termo) ||
-            palavrasNome.some((palavra) => palavra.startsWith(termo))
+            palavras.some((palavra) => palavra.startsWith(termo))
+        );
+    });
+
+    /*
+       Quando a busca corresponde exatamente ao grupo,
+       mostra o convite original primeiro.
+    */
+
+    encontrados.sort((a, b) => {
+        const aEhGrupo = ehConviteDoGrupo(a);
+        const bEhGrupo = ehConviteDoGrupo(b);
+
+        if (aEhGrupo && !bEhGrupo) return -1;
+        if (!aEhGrupo && bEhGrupo) return 1;
+
+        return String(a.nome).localeCompare(
+            String(b.nome),
+            "pt-BR"
         );
     });
 
     if (!encontrados.length) {
-        const aviso = document.createElement("p");
-        aviso.className = "ajuda-resultados";
-        aviso.textContent = "Nenhum nome encontrado. Tente outro sobrenome ou confira a digitação.";
-        resultados.appendChild(aviso);
+        adicionarAjuda(
+            resultados,
+            "Nenhum nome encontrado. Tente outro sobrenome ou confira a digitação."
+        );
         return;
     }
 
-    const titulo = document.createElement("p");
-    titulo.className = "ajuda-resultados";
-    titulo.textContent = encontrados.length === 1
-        ? "Encontramos este nome. Selecione para continuar:"
-        : `${encontrados.length} nomes encontrados. Selecione o seu:`;
-
-    resultados.appendChild(titulo);
+    adicionarAjuda(
+        resultados,
+        encontrados.length === 1
+            ? "Encontramos este nome. Selecione para continuar:"
+            : `${encontrados.length} resultados. Selecione seu convite:`
+    );
 
     encontrados.slice(0, 30).forEach((convidado) => {
         const opcao = document.createElement("button");
@@ -193,14 +261,21 @@ function pesquisarNomes() {
         opcao.type = "button";
         opcao.className = "opcao-convidado";
         opcao.setAttribute("role", "option");
+        opcao.setAttribute("aria-selected", "false");
 
         const nome = document.createElement("strong");
         nome.textContent = convidado.nome || "Nome não informado";
 
         const detalhe = document.createElement("small");
-        detalhe.textContent = convidado.confirmado === true
-            ? "Presença já confirmada"
-            : "Toque para selecionar";
+
+        if (ehConviteDoGrupo(convidado)) {
+            detalhe.textContent =
+                "Convite de grupo · selecione para informar seu nome";
+        } else if (convidado.confirmado === true) {
+            detalhe.textContent = "Presença já confirmada";
+        } else {
+            detalhe.textContent = "Toque para selecionar";
+        }
 
         opcao.append(nome, detalhe);
 
@@ -212,15 +287,22 @@ function pesquisarNomes() {
     });
 
     if (encontrados.length > 30) {
-        const aviso = document.createElement("p");
-        aviso.className = "ajuda-resultados";
-        aviso.textContent = "Há muitos resultados. Digite mais algumas letras para refinar a busca.";
-        resultados.appendChild(aviso);
+        adicionarAjuda(
+            resultados,
+            "Há muitos resultados. Digite mais algumas letras para refinar a busca."
+        );
     }
 }
 
+function adicionarAjuda(container, texto) {
+    const elemento = document.createElement("p");
+    elemento.className = "ajuda-resultados";
+    elemento.textContent = texto;
+    container.appendChild(elemento);
+}
+
 /* =========================================================
-   SELECIONAR CONVIDADO
+   SELECIONAR CONVIDADO OU GRUPO
 ========================================================= */
 
 function selecionarConvidado(convidado, botaoClicado) {
@@ -251,23 +333,78 @@ function selecionarConvidado(convidado, botaoClicado) {
         botaoContinuar.innerHTML = "CONTINUAR <span>→</span>";
     }
 
-    mostrarMensagem("Nome selecionado! Clique em Continuar para prosseguir.", false);
+    mostrarMensagem(
+        ehConviteDoGrupo(convidado)
+            ? "Grupo selecionado! No próximo passo, informe seu nome."
+            : "Nome selecionado! Clique em Continuar para prosseguir.",
+        false
+    );
 }
 
 /* =========================================================
-   CONTINUAR
+   CONTINUAR PARA A CONFIRMAÇÃO
 ========================================================= */
 
 function verificarConvidado() {
     limparMensagem();
 
     if (!convidadoSelecionado) {
-        mostrarMensagem("Primeiro, selecione seu nome na lista.", true);
+        mostrarMensagem(
+            "Primeiro, selecione seu nome na lista.",
+            true
+        );
         $("nome")?.focus();
         return;
     }
 
     const convidado = convidadoSelecionado;
+
+    /*
+       O convite do grupo é apenas a entrada para o cadastro.
+       Não confirmamos o registro coletivo.
+    */
+
+    if (ehConviteDoGrupo(convidado)) {
+        restaurarPasso2();
+
+        const titulo = $("passo-2")?.querySelector(
+            ".titulo-passo h2"
+        );
+        const subtitulo = $("passo-2")?.querySelector(
+            ".titulo-passo span"
+        );
+        const nomeEncontrado = $("nome-encontrado");
+        const campoGrupo = $("campo-integrante-grupo");
+        const inputIntegrante = $("nome-integrante-grupo");
+        const acompanhantes = $("acompanhantes");
+
+        if (titulo) {
+            titulo.textContent = "Quem está confirmando?";
+        }
+
+        if (subtitulo) {
+            subtitulo.textContent = "GRUPO AMIGOS PILATES";
+        }
+
+        if (nomeEncontrado) {
+            nomeEncontrado.textContent = NOME_GRUPO;
+        }
+
+        campoGrupo?.classList.remove("escondido");
+
+        if (inputIntegrante) {
+            inputIntegrante.value = "";
+            inputIntegrante.required = true;
+        }
+
+        if (acompanhantes) {
+            acompanhantes.value = "0";
+        }
+
+        mostrarPasso("confirmar");
+        inputIntegrante?.focus();
+        return;
+    }
 
     if (convidado.confirmado === true) {
         mostrarDadosJaConfirmado(convidado);
@@ -275,6 +412,13 @@ function verificarConvidado() {
     }
 
     restaurarPasso2();
+
+    $("campo-integrante-grupo")?.classList.add("escondido");
+
+    if ($("nome-integrante-grupo")) {
+        $("nome-integrante-grupo").value = "";
+        $("nome-integrante-grupo").required = false;
+    }
 
     if ($("nome-encontrado")) {
         $("nome-encontrado").textContent = convidado.nome;
@@ -293,12 +437,15 @@ function verificarConvidado() {
 
 function mostrarDadosJaConfirmado(convidado) {
     if ($("nome-ja-confirmado")) {
-        $("nome-ja-confirmado").textContent = convidado.nome;
+        $("nome-ja-confirmado").textContent =
+            nomeDoIntegrante(convidado);
     }
 
     if ($("acompanhantes-ja-confirmado")) {
         $("acompanhantes-ja-confirmado").textContent =
-            formatarAcompanhantes(Number(convidado.acompanhantes || 0));
+            formatarAcompanhantes(
+                Number(convidado.acompanhantes || 0)
+            );
     }
 
     mostrarPasso("confirmado");
@@ -309,50 +456,146 @@ function mostrarDadosJaConfirmado(convidado) {
 ========================================================= */
 
 function restaurarPasso2() {
-    const titulo = $("passo-2")?.querySelector(".titulo-passo h2");
-    const subtitulo = $("passo-2")?.querySelector(".titulo-passo span");
+    const titulo = $("passo-2")?.querySelector(
+        ".titulo-passo h2"
+    );
+    const subtitulo = $("passo-2")?.querySelector(
+        ".titulo-passo span"
+    );
 
     if (titulo) titulo.textContent = "Encontramos seu nome!";
     if (subtitulo) subtitulo.textContent = "CONVITE LOCALIZADO";
 
-    const convite = document.querySelector("#passo-2 .convite-localizado");
-    const texto = document.querySelector("#passo-2 .texto-confirmacao");
-    const campoAcompanhantes = $("passo-2")?.querySelector(".campo-acompanhantes");
+    const convite = document.querySelector(
+        "#passo-2 .convite-localizado"
+    );
+    const texto = document.querySelector(
+        "#passo-2 .texto-confirmacao"
+    );
+    const campoAcompanhantes = $("passo-2")?.querySelector(
+        ".campo-acompanhantes"
+    );
     const btnConfirmar = $("btn-confirmar");
 
     if (convite) convite.style.display = "";
     if (texto) texto.style.display = "";
     if (campoAcompanhantes) campoAcompanhantes.style.display = "";
     if (btnConfirmar) btnConfirmar.style.display = "";
+
+    $("campo-integrante-grupo")?.classList.add("escondido");
 }
 
 /* =========================================================
-   CONFIRMAR PRESENÇA NO SUPABASE
+   CONFIRMAR INTEGRANTE DO GRUPO
+========================================================= */
+
+async function confirmarIntegranteGrupo(quantidade) {
+    const campo = $("nome-integrante-grupo");
+    const nomeDigitado = String(campo?.value ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (!nomeDigitado) {
+        mostrarMensagem("Digite seu nome completo.", true);
+        campo?.focus();
+        return;
+    }
+
+    if (nomeDigitado.length < 2) {
+        mostrarMensagem("Digite um nome válido.", true);
+        campo?.focus();
+        return;
+    }
+
+    /*
+       Salvamos o grupo no final do nome para identificar
+       a qual convite o integrante pertence sem exigir
+       uma nova coluna na tabela.
+    */
+
+    const nomeBanco = `${nomeDigitado} (${NOME_GRUPO})`;
+    const nomeNormalizado = normalizar(nomeBanco);
+
+    const existente = listaConvidados.find((item) =>
+        normalizar(item.nome) === nomeNormalizado
+    );
+
+    if (existente) {
+        convidadoSelecionado = existente;
+        mostrarDadosJaConfirmado(existente);
+
+        mostrarMensagem(
+            "Encontramos uma confirmação anterior para esse nome.",
+            false
+        );
+        return;
+    }
+
+    const conviteGrupo = convidadoSelecionado;
+
+    const { data, error } = await supabaseClient
+        .from("convidados")
+        .insert({
+            nome: nomeBanco,
+            aniversariante: conviteGrupo.aniversariante,
+            confirmado: true,
+            acompanhantes: quantidade
+        })
+        .select(
+            "id, nome, aniversariante, confirmado, acompanhantes"
+        )
+        .single();
+
+    if (error) throw error;
+
+    listaConvidados.push(data);
+    convidadoSelecionado = data;
+
+    if ($("nome-sucesso")) {
+        $("nome-sucesso").textContent = nomeDigitado;
+    }
+
+    if ($("sucesso-acompanhantes")) {
+        $("sucesso-acompanhantes").textContent =
+            formatarAcompanhantes(quantidade);
+    }
+
+    mostrarPasso("sucesso");
+}
+
+/* =========================================================
+   CONFIRMAR PRESENÇA
 ========================================================= */
 
 async function confirmarPresenca() {
     if (carregando) return;
 
     if (!convidadoSelecionado) {
-        mostrarMensagem("Selecione seu nome antes de confirmar.", true);
+        mostrarMensagem(
+            "Selecione seu nome antes de confirmar.",
+            true
+        );
         return;
     }
 
-    const convidado = convidadoSelecionado;
+    const quantidade = Number(
+        $("acompanhantes")?.value ?? 0
+    );
 
-    if (convidado.confirmado === true) {
-        mostrarDadosJaConfirmado(convidado);
-        return;
-    }
-
-    const quantidade = Number($("acompanhantes")?.value ?? 0);
-
-    if (!Number.isInteger(quantidade) || quantidade < 0 || quantidade > MAX_ACOMPANHANTES) {
-        mostrarMensagem(`Escolha de 0 a ${MAX_ACOMPANHANTES} acompanhantes.`, true);
+    if (
+        !Number.isInteger(quantidade) ||
+        quantidade < 0 ||
+        quantidade > MAX_ACOMPANHANTES
+    ) {
+        mostrarMensagem(
+            `Escolha de 0 a ${MAX_ACOMPANHANTES} acompanhantes.`,
+            true
+        );
         return;
     }
 
     const botao = $("btn-confirmar");
+
     carregando = true;
 
     if (botao) {
@@ -361,6 +604,23 @@ async function confirmarPresenca() {
     }
 
     try {
+        /*
+           Fluxo exclusivo do grupo:
+           cria um registro individual já confirmado.
+        */
+
+        if (ehConviteDoGrupo(convidadoSelecionado)) {
+            await confirmarIntegranteGrupo(quantidade);
+            return;
+        }
+
+        const convidado = convidadoSelecionado;
+
+        if (convidado.confirmado === true) {
+            mostrarDadosJaConfirmado(convidado);
+            return;
+        }
+
         const { data, error } = await supabaseClient
             .from("convidados")
             .update({
@@ -369,18 +629,22 @@ async function confirmarPresenca() {
             })
             .eq("id", convidado.id)
             .eq("confirmado", false)
-            .select("id, nome, aniversariante, confirmado, acompanhantes")
+            .select(
+                "id, nome, aniversariante, confirmado, acompanhantes"
+            )
             .maybeSingle();
 
         if (error) throw error;
 
         if (!data) {
-            // Evita sobrescrever uma confirmação feita em outra sessão.
-            const { data: atual, error: erroConsulta } = await supabaseClient
-                .from("convidados")
-                .select("id, nome, aniversariante, confirmado, acompanhantes")
-                .eq("id", convidado.id)
-                .maybeSingle();
+            const { data: atual, error: erroConsulta } =
+                await supabaseClient
+                    .from("convidados")
+                    .select(
+                        "id, nome, aniversariante, confirmado, acompanhantes"
+                    )
+                    .eq("id", convidado.id)
+                    .maybeSingle();
 
             if (erroConsulta) throw erroConsulta;
 
@@ -390,7 +654,9 @@ async function confirmarPresenca() {
                 return;
             }
 
-            throw new Error("A confirmação não foi registrada.");
+            throw new Error(
+                "A confirmação não foi registrada."
+            );
         }
 
         convidadoSelecionado = data;
@@ -401,15 +667,23 @@ async function confirmarPresenca() {
 
         if ($("sucesso-acompanhantes")) {
             $("sucesso-acompanhantes").textContent =
-                formatarAcompanhantes(Number(data.acompanhantes || 0));
+                formatarAcompanhantes(
+                    Number(data.acompanhantes || 0)
+                );
         }
 
-        const indice = listaConvidados.findIndex((item) => item.id === data.id);
-        if (indice !== -1) listaConvidados[indice] = data;
+        const indice = listaConvidados.findIndex(
+            (item) => String(item.id) === String(data.id)
+        );
+
+        if (indice !== -1) {
+            listaConvidados[indice] = data;
+        }
 
         mostrarPasso("sucesso");
     } catch (erro) {
         console.error("Erro ao confirmar presença:", erro);
+
         mostrarMensagem(
             "Não foi possível confirmar sua presença. Verifique a conexão e tente novamente.",
             true
@@ -419,22 +693,10 @@ async function confirmarPresenca() {
 
         if (botao) {
             botao.disabled = false;
-            botao.innerHTML = "<span>✓</span> CONFIRMAR MINHA PRESENÇA";
+            botao.innerHTML =
+                "<span>✓</span> CONFIRMAR MINHA PRESENÇA";
         }
     }
-}
-
-/* =========================================================
-   ACOMPANHANTES
-========================================================= */
-
-function formatarAcompanhantes(quantidade) {
-    quantidade = Number(quantidade || 0);
-
-    if (quantidade === 0) return "Você irá sozinho.";
-    if (quantidade === 1) return "Você irá com 1 acompanhante.";
-
-    return `Você irá com ${quantidade} acompanhantes.`;
 }
 
 /* =========================================================
@@ -471,21 +733,27 @@ function voltar() {
 
     if ($("nome")) $("nome").value = "";
     if ($("acompanhantes")) $("acompanhantes").value = "0";
+    if ($("nome-integrante-grupo")) {
+        $("nome-integrante-grupo").value = "";
+    }
 
-    if ($("resultados-nomes")) {
-        $("resultados-nomes").innerHTML = "";
+    const resultados = $("resultados-nomes");
 
-        const ajuda = document.createElement("p");
-        ajuda.className = "ajuda-resultados";
-        ajuda.textContent = "Digite pelo menos 2 letras para encontrar seu nome.";
-        $("resultados-nomes").appendChild(ajuda);
+    if (resultados) {
+        resultados.replaceChildren();
+
+        adicionarAjuda(
+            resultados,
+            "Digite pelo menos 2 letras para encontrar seu nome."
+        );
     }
 
     $("nome-selecionado")?.classList.add("escondido");
 
     if ($("btn-continuar")) {
         $("btn-continuar").disabled = true;
-        $("btn-continuar").innerHTML = "CONTINUAR <span>→</span>";
+        $("btn-continuar").innerHTML =
+            "CONTINUAR <span>→</span>";
     }
 
     restaurarPasso2();
@@ -499,25 +767,18 @@ function voltar() {
 ========================================================= */
 
 function configurarEstadoInicial() {
-    if ($("btn-continuar")) $("btn-continuar").disabled = true;
-    if ($("acompanhantes")) $("acompanhantes").value = "0";
+    if ($("btn-continuar")) {
+        $("btn-continuar").disabled = true;
+    }
 
+    if ($("acompanhantes")) {
+        $("acompanhantes").value = "0";
+    }
+
+    if ($("nome-integrante-grupo")) {
+        $("nome-integrante-grupo").required = false;
+    }
+
+    restaurarPasso2();
     mostrarPasso("inicial");
-}
-
-/* =========================================================
-   MENSAGENS
-========================================================= */
-
-function mostrarMensagem(texto, erro = false) {
-    const elemento = $("mensagem");
-    if (!elemento) return;
-
-    elemento.textContent = texto;
-    elemento.style.color = erro ? "#ff8585" : "#7edc91";
-}
-
-function limparMensagem() {
-    const elemento = $("mensagem");
-    if (elemento) elemento.textContent = "";
 }
