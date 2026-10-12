@@ -1,107 +1,42 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <meta
-        name="description"
-        content="Confirmação de presença - aniversário 24 de outubro de 2026"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080808">
+    <meta name="description" content="Confirme sua presença no aniversário de 24 de outubro de 2026.">
 
     <title>Confirmar Presença | 24/10/2026</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <!-- =====================================================
-         FONTE
-    ====================================================== -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
-    <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-    >
+    <link rel="stylesheet" href="confirmar.css">
 
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet"
-    >
-
-
-    <!-- =====================================================
-         SUPABASE
-    ====================================================== -->
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-        defer
-    ></script>
-
-
-    <!-- =====================================================
-         CSS
-    ====================================================== -->
-
-    <link
-        rel="stylesheet"
-        href="confirmar.css"
-    >
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="confirmar.js" defer></script>
 </head>
-
 
 <body>
 
-
-    <!-- =====================================================
-         FUNDO
-    ====================================================== -->
-
-    <div class="bg-glow glow-1"></div>
-    <div class="bg-glow glow-2"></div>
-
-
-    <!-- =====================================================
-         PÁGINA PRINCIPAL
-    ====================================================== -->
+    <div class="bg-glow glow-1" aria-hidden="true"></div>
+    <div class="bg-glow glow-2" aria-hidden="true"></div>
 
     <main class="confirmacao-page">
 
-
-        <!-- =================================================
-             TOPO
-        ================================================== -->
-
         <header class="topo">
 
-            <div class="data-evento">
-                24 • 10 • 2026
-            </div>
-
-
+            <div class="data-evento">24 • 10 • 2026</div>
             <div class="linha-dourada"></div>
 
+            <span class="convite">VOCÊ É NOSSO CONVIDADO</span>
 
-            <span class="convite">
-                VOCÊ É NOSSO CONVIDADO
-            </span>
-
-
-            <h1>
-                Confirme sua presença
-            </h1>
-
+            <h1>Confirme sua presença</h1>
 
             <p>
                 Será uma alegria celebrar esse momento
@@ -110,163 +45,118 @@
 
         </header>
 
+        <section class="card-confirmacao" aria-label="Confirmação de presença">
 
-        <!-- =================================================
-             CARD PRINCIPAL
-        ================================================== -->
+            <!-- PASSO 1: BUSCAR E SELECIONAR O NOME -->
 
-        <section class="card-confirmacao">
+            <div id="passo-1" class="passo">
 
-
-            <!-- =================================================
-                 PASSO 1 — IDENTIFICAR CONVIDADO
-            ================================================== -->
-
-            <div
-                id="passo-1"
-                class="passo"
-            >
-
-                <div class="numero-passo">
-                    01
-                </div>
-
+                <div class="numero-passo">01</div>
 
                 <div class="titulo-passo">
-
-                    <span>
-                        PRIMEIRO PASSO
-                    </span>
-
-                    <h2>
-                        Confirme sua presença
-                    </h2>
-
+                    <span>PRIMEIRO PASSO</span>
+                    <h2>Encontre seu convite</h2>
                 </div>
 
-
-                <!-- =================================================
-                     NOME DO CONVIDADO
-                ================================================== -->
+                <p class="texto-confirmacao">
+                    Digite seu primeiro nome ou sobrenome
+                    e selecione seu nome na lista.
+                </p>
 
                 <div class="campo">
 
-                    <label for="nome">
-                        SEU NOME
-                    </label>
-
+                    <label for="nome">BUSQUE SEU NOME</label>
 
                     <input
-                        type="text"
+                        type="search"
                         id="nome"
-                        placeholder="Digite seu nome completo"
+                        name="nome"
+                        placeholder="Digite parte do seu nome..."
                         maxlength="100"
-                        autocomplete="name"
+                        autocomplete="off"
+                        aria-describedby="ajuda-busca"
+                        aria-controls="resultados-nomes"
+                        aria-autocomplete="list"
                     >
+
+                    <small id="ajuda-busca">
+                        Não precisa digitar o nome completo.
+                    </small>
 
                 </div>
 
+                <!-- RESULTADOS DA BUSCA -->
 
-                <!-- =================================================
-                     CONTINUAR
-                ================================================== -->
+                <div
+                    id="resultados-nomes"
+                    class="resultados-nomes"
+                    role="listbox"
+                    aria-label="Nomes encontrados"
+                    aria-live="polite"
+                >
+                    <p class="ajuda-resultados">
+                        Comece digitando seu nome para encontrar seu convite.
+                    </p>
+                </div>
+
+                <!-- NOME SELECIONADO -->
+
+                <div
+                    id="nome-selecionado"
+                    class="nome-selecionado escondido"
+                    aria-live="polite"
+                >
+                    <span>✓</span>
+                    <div>
+                        <small>NOME SELECIONADO</small>
+                        <strong id="nome-escolhido">—</strong>
+                    </div>
+                </div>
 
                 <button
                     type="button"
                     class="btn-continuar"
                     id="btn-continuar"
+                    disabled
                 >
-
-                    CONTINUAR
-
-                    <span>
-                        →
-                    </span>
-
+                    CONTINUAR <span>→</span>
                 </button>
-
-
-                <!-- =================================================
-                     MENSAGEM
-                ================================================== -->
 
                 <div
                     id="mensagem"
                     class="mensagem"
+                    role="status"
                     aria-live="polite"
                 ></div>
 
             </div>
 
+            <!-- PASSO 2: CONFIRMAR PRESENÇA -->
 
-            <!-- =================================================
-                 PASSO 2 — CONVITE LOCALIZADO
-            ================================================== -->
+            <div id="passo-2" class="passo escondido">
 
-            <div
-                id="passo-2"
-                class="passo escondido"
-            >
-
-                <div class="numero-passo">
-                    02
-                </div>
-
+                <div class="numero-passo">02</div>
 
                 <div class="titulo-passo">
-
-                    <span>
-                        CONVITE LOCALIZADO
-                    </span>
-
-                    <h2>
-                        Encontramos seu nome!
-                    </h2>
-
+                    <span>CONVITE LOCALIZADO</span>
+                    <h2>Encontramos seu nome!</h2>
                 </div>
-
-
-                <!-- =================================================
-                     CONVIDADO ENCONTRADO
-                ================================================== -->
 
                 <div class="convite-localizado">
 
-                    <div class="check">
-                        ✓
-                    </div>
-
+                    <div class="check">✓</div>
 
                     <div>
-
-                        <span>
-                            CONVIDADO
-                        </span>
-
-                        <strong id="nome-encontrado">
-                            —
-                        </strong>
-
+                        <span>CONVIDADO</span>
+                        <strong id="nome-encontrado">—</strong>
                     </div>
 
                 </div>
 
-
-                <!-- =================================================
-                     TEXTO
-                ================================================== -->
-
                 <p class="texto-confirmacao">
-
-                    Seu nome está na lista.
-                    Confirme abaixo sua presença no evento.
-
+                    Confira se este é o seu nome e confirme
+                    sua presença no evento.
                 </p>
-
-
-                <!-- =================================================
-                     ACOMPANHANTES
-                ================================================== -->
 
                 <div class="campo campo-acompanhantes">
 
@@ -274,38 +164,16 @@
                         QUANTAS PESSOAS IRÃO COM VOCÊ?
                     </label>
 
+                    <select id="acompanhantes" name="acompanhantes">
 
-                    <select
-                        id="acompanhantes"
-                        name="acompanhantes"
-                    >
-
-                        <option value="0">
-                            Vou sozinho
-                        </option>
-
-                        <option value="1">
-                            1 acompanhante
-                        </option>
-
-                        <option value="2">
-                            2 acompanhantes
-                        </option>
-
-                        <option value="3">
-                            3 acompanhantes
-                        </option>
-
-                        <option value="4">
-                            4 acompanhantes
-                        </option>
-
-                        <option value="5">
-                            5 acompanhantes
-                        </option>
+                        <option value="0">Vou sozinho</option>
+                        <option value="1">1 acompanhante</option>
+                        <option value="2">2 acompanhantes</option>
+                        <option value="3">3 acompanhantes</option>
+                        <option value="4">4 acompanhantes</option>
+                        <option value="5">5 acompanhantes</option>
 
                     </select>
-
 
                     <small>
                         Informe somente as pessoas que irão com você.
@@ -313,217 +181,97 @@
 
                 </div>
 
-
-                <!-- =================================================
-                     CONFIRMAR PRESENÇA
-                ================================================== -->
-
                 <button
                     type="button"
                     class="btn-confirmar"
                     id="btn-confirmar"
                 >
-
-                    <span>
-                        ✓
-                    </span>
-
+                    <span>✓</span>
                     CONFIRMAR MINHA PRESENÇA
-
                 </button>
-
-
-                <!-- =================================================
-                     VOLTAR
-                ================================================== -->
 
                 <button
                     type="button"
                     class="btn-voltar"
                     id="btn-voltar"
                 >
-
-                    ← VOLTAR
-
+                    ← VOLTAR À LISTA
                 </button>
 
             </div>
 
+            <!-- PASSO 3: CONFIRMAÇÃO CONCLUÍDA -->
 
-            <!-- =================================================
-                 PASSO 3 — PRESENÇA CONFIRMADA
-            ================================================== -->
+            <div id="passo-3" class="passo escondido">
 
-            <div
-                id="passo-3"
-                class="passo escondido"
-            >
-
-                <div class="sucesso-icon">
-                    ✓
-                </div>
-
+                <div class="sucesso-icon">✓</div>
 
                 <span class="sucesso-label">
                     PRESENÇA CONFIRMADA
                 </span>
 
-
-                <h2>
-                    Até lá!
-                </h2>
-
+                <h2>Até lá!</h2>
 
                 <p>
-
-                    <strong id="nome-sucesso">
-                        —
-                    </strong>,
-
-                    sua presença foi confirmada
-                    com sucesso.
-
+                    <strong id="nome-sucesso">—</strong>,
+                    sua presença foi confirmada com sucesso.
                 </p>
-
-
-                <!-- =================================================
-                     RESUMO DO EVENTO
-                ================================================== -->
 
                 <div class="evento-resumo">
 
-
-                    <!-- DATA -->
-
                     <div>
-
-                        <span>
-                            DATA
-                        </span>
-
-                        <strong>
-                            24/10/2026
-                        </strong>
-
+                        <span>DATA</span>
+                        <strong>24/10/2026</strong>
                     </div>
 
-
-                    <!-- CONVIDADO -->
-
                     <div>
-
-                        <span>
-                            CONVIDADO
-                        </span>
-
-                        <strong id="sucesso-aniversariante">
-                            CONFIRMADO
-                        </strong>
-
+                        <span>STATUS</span>
+                        <strong>CONFIRMADO</strong>
                     </div>
 
                 </div>
-
-
-                <!-- =================================================
-                     TOTAL DE ACOMPANHANTES
-                ================================================== -->
 
                 <p
                     id="sucesso-acompanhantes"
                     class="sucesso-acompanhantes"
                 ></p>
 
-
-                <!-- =================================================
-                     MENSAGEM FINAL
-                ================================================== -->
-
                 <div class="mensagem-final">
-
-                    Obrigado por confirmar.
-                    Estamos preparando tudo
-                    com muito carinho. ❤️
-
+                    Obrigado por confirmar!
+                    Estamos preparando tudo com muito carinho. ❤️
                 </div>
 
             </div>
 
+            <!-- PRESENÇA JÁ CONFIRMADA -->
 
-            <!-- =================================================
-                 JÁ CONFIRMADO
-            ================================================== -->
+            <div id="passo-confirmado" class="passo escondido">
 
-            <div
-                id="passo-confirmado"
-                class="passo escondido"
-            >
-
-                <div class="sucesso-icon">
-                    ✓
-                </div>
-
+                <div class="sucesso-icon">✓</div>
 
                 <span class="sucesso-label">
                     PRESENÇA JÁ CONFIRMADA
                 </span>
 
-
-                <h2>
-                    Tudo certo!
-                </h2>
-
+                <h2>Tudo certo!</h2>
 
                 <p>
-
-                    Encontramos sua confirmação
-                    na lista de convidados.
-
+                    Encontramos sua confirmação na lista de convidados.
                 </p>
-
-
-                <!-- =================================================
-                     RESUMO DA CONFIRMAÇÃO
-                ================================================== -->
 
                 <div class="evento-resumo">
 
-
-                    <!-- CONVIDADO -->
-
                     <div>
-
-                        <span>
-                            CONVIDADO
-                        </span>
-
-                        <strong id="nome-ja-confirmado">
-                            —
-                        </strong>
-
+                        <span>CONVIDADO</span>
+                        <strong id="nome-ja-confirmado">—</strong>
                     </div>
 
-
-                    <!-- DATA -->
-
                     <div>
-
-                        <span>
-                            DATA
-                        </span>
-
-                        <strong>
-                            24/10/2026
-                        </strong>
-
+                        <span>DATA</span>
+                        <strong>24/10/2026</strong>
                     </div>
 
                 </div>
-
-
-                <!-- =================================================
-                     ACOMPANHANTES JÁ CONFIRMADOS
-                ================================================== -->
 
                 <p
                     id="acompanhantes-ja-confirmado"
@@ -532,70 +280,43 @@
 
             </div>
 
+            <!-- CONVITE NÃO ENCONTRADO -->
 
-            <!-- =================================================
-                 NÃO ENCONTRADO
-            ================================================== -->
+            <div id="passo-nao-encontrado" class="passo escondido">
 
-            <div
-                id="passo-nao-encontrado"
-                class="passo escondido"
-            >
-
-                <div class="erro-icon">
-                    !
-                </div>
-
+                <div class="erro-icon">!</div>
 
                 <span class="erro-label">
                     CONVITE NÃO LOCALIZADO
                 </span>
 
-
-                <h2>
-                    Não encontramos seu nome
-                </h2>
-
+                <h2>Não encontramos seu convite</h2>
 
                 <p>
-
-                    Verifique se o nome foi digitado
-                    exatamente como está no convite.
-
+                    Tente pesquisar usando apenas seu primeiro nome
+                    ou sobrenome. Se não encontrar, entre em contato
+                    com a pessoa responsável pelo convite.
                 </p>
-
 
                 <button
                     type="button"
                     class="btn-voltar"
                     id="btn-tentar-novamente"
                 >
-
-                    ← TENTAR NOVAMENTE
-
+                    ← VOLTAR E BUSCAR NOVAMENTE
                 </button>
 
             </div>
 
-
         </section>
 
-
-        <!-- =================================================
-             INFORMAÇÕES DO EVENTO
-        ================================================== -->
+        <!-- INFORMAÇÕES DO EVENTO -->
 
         <section class="evento">
 
-            <span>
-                NOSSO ENCONTRO
-            </span>
+            <span>NOSSO ENCONTRO</span>
 
-
-            <h3>
-                24 de Outubro de 2026
-            </h3>
-
+            <h3>24 de Outubro de 2026</h3>
 
             <p>
                 Uma noite especial para celebrar,
@@ -604,41 +325,13 @@
 
         </section>
 
-
-        <!-- =================================================
-             FOOTER
-        ================================================== -->
-
         <footer>
-
-            <span>
-                ANIVERSÁRIO
-            </span>
-
-            <span>
-                •
-            </span>
-
-            <span>
-                24/10/2026
-            </span>
-
+            <span>ANIVERSÁRIO</span>
+            <span>•</span>
+            <span>24/10/2026</span>
         </footer>
-
 
     </main>
 
-
-    <!-- =====================================================
-         JAVASCRIPT
-    ====================================================== -->
-
-    <script
-        src="confirmar.js"
-        defer
-    ></script>
-
-
 </body>
-
 </html>
