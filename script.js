@@ -1,81 +1,18 @@
-/* =========================================================
-   LISTA DE CONVIDADOS
-   ANIVERSÁRIO — 24/10/2026
-   S7 SYSTEMS — CONTROLE DE PRESENÇAS
-========================================================= */
 
 "use strict";
 
 /* =========================================================
-   PROTEÇÃO VISUAL POR SENHA
+   LISTA DE CONVIDADOS — 24/10/2026
+   S7 SYSTEMS — CONTROLE DE PRESENÇAS
+   Sem limite fixo de convidados
 ========================================================= */
+
+/* =========================
+   CONFIGURAÇÕES
+========================= */
 
 const SENHA_CORRETA = "222530";
 const CHAVE_SESSAO = "lista_autorizada";
-
-let sistemaInicializado = false;
-
-function configurarProtecao() {
-    const telaSenha = document.getElementById("tela-senha");
-    const formularioSenha = document.getElementById("form-senha");
-    const campoSenha = document.getElementById("senha-acesso");
-    const erroSenha = document.getElementById("erro-senha");
-
-    if (!telaSenha || !formularioSenha) {
-        liberarSistema();
-        return;
-    }
-
-    if (sessionStorage.getItem(CHAVE_SESSAO) === "true") {
-        liberarSistema();
-        return;
-    }
-
-    formularioSenha.addEventListener("submit", function (evento) {
-        evento.preventDefault();
-
-        const senha = campoSenha?.value.trim() ?? "";
-
-        if (senha === SENHA_CORRETA) {
-            sessionStorage.setItem(CHAVE_SESSAO, "true");
-
-            if (erroSenha) {
-                erroSenha.textContent = "";
-            }
-
-            liberarSistema();
-        } else {
-            if (erroSenha) {
-                erroSenha.textContent = "Senha incorreta. Tente novamente.";
-            }
-
-            if (campoSenha) {
-                campoSenha.value = "";
-                campoSenha.focus();
-            }
-        }
-    });
-}
-
-function liberarSistema() {
-    const telaSenha = document.getElementById("tela-senha");
-    const aplicativo = document.getElementById("app");
-
-    if (telaSenha) {
-        telaSenha.hidden = true;
-        telaSenha.remove();
-    }
-
-    if (aplicativo) {
-        aplicativo.hidden = false;
-    }
-
-    iniciarSistema();
-}
-
-/* =========================================================
-   SUPABASE
-========================================================= */
 
 const SUPABASE_URL =
     "https://wiwvpqjlwmtmlexusiyd.supabase.co";
@@ -83,93 +20,26 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
     "sb_publishable_LzX0GpaYAK2KNSu2eetEuw_tr5PKqSi";
 
-let supabaseClient = null;
-
-/* =========================================================
-   CONFIGURAÇÃO
-========================================================= */
-
-/*
-   Não existe mais LIMITE de convidados.
-
-   Sarah, Jeice e Ione são suportadas.
-   Para visualizar cada lista, o HTML precisa ter
-   um botão .tab com data-aniversariante correspondente.
-*/
-
 const ANIVERSARIANTES = {
     sarah: "Sarah",
     jeice: "Jeice",
     ione: "Ione"
 };
 
-/* =========================================================
-   ESTADO
-========================================================= */
-
+let supabaseClient = null;
+let sistemaInicializado = false;
 let aniversarianteAtual = "sarah";
 let convidados = [];
 let timerMensagem = null;
+const operacoesEmAndamento = new Set();
 
-/* =========================================================
-   INICIALIZAR SISTEMA
-========================================================= */
-
-function iniciarSistema() {
-    if (sistemaInicializado) return;
-
-    sistemaInicializado = true;
-
-    configurarEventos();
-
-    const supabaseOK = iniciarSupabase();
-
-    if (!supabaseOK) return;
-
-    selecionarAniversariante("sarah");
-    carregarConvidados();
-}
-
-/* =========================================================
-   INICIALIZAR SUPABASE
-========================================================= */
-
-function iniciarSupabase() {
-    if (
-        !window.supabase ||
-        typeof window.supabase.createClient !== "function"
-    ) {
-        mostrarMensagem(
-            "A biblioteca do Supabase não foi carregada. Verifique o HTML.",
-            "erro"
-        );
-
-        console.error("Supabase JS não está disponível.");
-        return false;
-    }
-
-    try {
-        supabaseClient = window.supabase.createClient(
-            SUPABASE_URL,
-            SUPABASE_KEY
-        );
-
-        return true;
-    } catch (erro) {
-        console.error("Erro ao inicializar Supabase:", erro);
-
-        mostrarMensagem(
-            "Não foi possível iniciar a conexão com o banco de dados.",
-            "erro"
-        );
-
-        return false;
-    }
-}
-
-/* =========================================================
+/* =========================
    UTILIDADES
-========================================================= */
+========================= */
+
+function obterCampo(id) {
+    return document.getElementById(id);
+}
 
 function normalizar(valor) {
     return String(valor ?? "")
@@ -177,6 +47,15 @@ function normalizar(valor) {
         .replace(/[\u0300-\u036f]/g, "")
         .trim()
         .toLowerCase();
+}
+
+function escaparHTML(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function obterAcompanhantes(convidado) {
@@ -189,17 +68,17 @@ function obterAcompanhantes(convidado) {
     return Math.floor(quantidade);
 }
 
-function escaparHTML(valor) {
-    return String(valor ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+function textoAcompanhantes(quantidade) {
+    quantidade = Number(quantidade || 0);
+
+    if (quantidade === 0) return "Sem acompanhantes";
+    if (quantidade === 1) return "1 acompanhante";
+
+    return `${quantidade} acompanhantes`;
 }
 
 function mostrarMensagem(texto, tipo = "") {
-    const elemento = document.getElementById("mensagem");
+    const elemento = obterCampo("mensagem");
 
     if (!elemento) return;
 
@@ -220,57 +99,166 @@ function mostrarMensagem(texto, tipo = "") {
     }
 }
 
-function obterCampo(id) {
-    return document.getElementById(id);
-}
+function definirOperacao(id, ativa) {
+    const chave = String(id);
 
-function obterTextoSeguro(valor) {
-    return escaparHTML(valor);
-}
+    if (ativa) {
+        operacoesEmAndamento.add(chave);
+    } else {
+        operacoesEmAndamento.delete(chave);
+    }
 
-/* =========================================================
-   FILTRAR CONVIDADOS POR ANIVERSARIANTE
-========================================================= */
-
-function convidadosDaAniversariante(aniversariante) {
-    return convidados.filter((convidado) => {
-        return (
-            normalizar(convidado.aniversariante) ===
-            normalizar(aniversariante)
-        );
-    });
-}
-
-/* =========================================================
-   ORDENAR CONVIDADOS
-========================================================= */
-
-function ordenarConvidados(lista) {
-    return [...lista].sort((a, b) => {
-        const dataA = a.created_at
-            ? new Date(a.created_at).getTime()
-            : 0;
-
-        const dataB = b.created_at
-            ? new Date(b.created_at).getTime()
-            : 0;
-
-        if (dataA && dataB && dataA !== dataB) {
-            return dataA - dataB;
+    document.querySelectorAll("[data-id]").forEach((botao) => {
+        if (String(botao.dataset.id) === chave) {
+            botao.disabled = ativa;
         }
+    });
 
-        return Number(a.id) - Number(b.id);
+    const botaoSalvar = obterCampo("btn-salvar");
+
+    if (botaoSalvar) {
+        botaoSalvar.disabled = Boolean(
+            botaoSalvar.dataset.salvando === "true"
+        );
+    }
+}
+
+function atualizarListaLocal(dado) {
+    const indice = convidados.findIndex((item) => {
+        return String(item.id) === String(dado.id);
+    });
+
+    if (indice >= 0) {
+        convidados[indice] = dado;
+    } else {
+        convidados.push(dado);
+    }
+}
+
+/* =========================
+   PROTEÇÃO POR SENHA
+========================= */
+
+function configurarProtecao() {
+    const telaSenha = obterCampo("tela-senha");
+    const formularioSenha = obterCampo("form-senha");
+    const campoSenha = obterCampo("senha-acesso");
+    const erroSenha = obterCampo("erro-senha");
+
+    if (!telaSenha || !formularioSenha) {
+        liberarSistema();
+        return;
+    }
+
+    if (sessionStorage.getItem(CHAVE_SESSAO) === "true") {
+        liberarSistema();
+        return;
+    }
+
+    formularioSenha.addEventListener("submit", (evento) => {
+        evento.preventDefault();
+
+        const senha = campoSenha?.value.trim() ?? "";
+
+        if (senha === SENHA_CORRETA) {
+            sessionStorage.setItem(CHAVE_SESSAO, "true");
+
+            if (erroSenha) {
+                erroSenha.textContent = "";
+            }
+
+            liberarSistema();
+        } else {
+            if (erroSenha) {
+                erroSenha.textContent =
+                    "Senha incorreta. Tente novamente.";
+            }
+
+            if (campoSenha) {
+                campoSenha.value = "";
+                campoSenha.focus();
+            }
+        }
     });
 }
 
-/* =========================================================
+function liberarSistema() {
+    const telaSenha = obterCampo("tela-senha");
+    const aplicativo = obterCampo("app");
+
+    if (telaSenha) {
+        telaSenha.hidden = true;
+        telaSenha.remove();
+    }
+
+    if (aplicativo) {
+        aplicativo.hidden = false;
+    }
+
+    iniciarSistema();
+}
+
+/* =========================
+   INICIALIZAR SUPABASE
+========================= */
+
+function iniciarSupabase() {
+    if (
+        !window.supabase ||
+        typeof window.supabase.createClient !== "function"
+    ) {
+        mostrarMensagem(
+            "A biblioteca do Supabase não carregou. Verifique o HTML.",
+            "erro"
+        );
+
+        console.error("Biblioteca Supabase indisponível.");
+        return false;
+    }
+
+    try {
+        supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+        );
+
+        return true;
+    } catch (erro) {
+        console.error("Erro ao inicializar Supabase:", erro);
+
+        mostrarMensagem(
+            "Não foi possível conectar ao banco de dados.",
+            "erro"
+        );
+
+        return false;
+    }
+}
+
+function iniciarSistema() {
+    if (sistemaInicializado) return;
+
+    sistemaInicializado = true;
+
+    configurarEventos();
+
+    if (!iniciarSupabase()) return;
+
+    selecionarAniversariante("sarah");
+    carregarConvidados();
+}
+
+/* =========================
    SELECIONAR ANIVERSARIANTE
-========================================================= */
+========================= */
 
 function selecionarAniversariante(aniversariante) {
     const chave = normalizar(aniversariante);
 
-    if (!Object.prototype.hasOwnProperty.call(ANIVERSARIANTES, chave)) {
+    if (!Object.prototype.hasOwnProperty.call(
+        ANIVERSARIANTES,
+        chave
+    )) {
         return;
     }
 
@@ -301,15 +289,16 @@ function selecionarAniversariante(aniversariante) {
 
     if (botaoSalvar) {
         botaoSalvar.disabled = false;
+        botaoSalvar.dataset.salvando = "false";
         botaoSalvar.textContent = "SALVAR CONVIDADO";
     }
 
     renderizar();
 }
 
-/* =========================================================
-   CARREGAR CONVIDADOS DO SUPABASE
-========================================================= */
+/* =========================
+   CARREGAR CONVIDADOS
+========================= */
 
 async function carregarConvidados() {
     if (!supabaseClient) return;
@@ -333,7 +322,7 @@ async function carregarConvidados() {
             console.error("Erro ao carregar convidados:", error);
 
             mostrarMensagem(
-                "Não foi possível carregar os convidados. Verifique as políticas RLS do Supabase.",
+                "Não foi possível carregar a lista. Confira as permissões RLS do Supabase.",
                 "erro"
             );
 
@@ -343,7 +332,6 @@ async function carregarConvidados() {
         convidados = Array.isArray(data) ? data : [];
 
         renderizar();
-
         mostrarMensagem("Lista atualizada.", "sucesso");
     } catch (erro) {
         console.error("Erro de conexão:", erro);
@@ -355,9 +343,44 @@ async function carregarConvidados() {
     }
 }
 
-/* =========================================================
-   RENDERIZAR CONTADORES E LISTAS
-========================================================= */
+/* =========================
+   FILTRAR E ORDENAR
+========================= */
+
+function convidadosDaAniversariante(aniversariante) {
+    return convidados.filter((convidado) => {
+        return normalizar(convidado.aniversariante) ===
+            normalizar(aniversariante);
+    });
+}
+
+function ordenarConvidados(lista) {
+    return [...lista].sort((a, b) => {
+        const dataA = a.created_at
+            ? new Date(a.created_at).getTime()
+            : 0;
+
+        const dataB = b.created_at
+            ? new Date(b.created_at).getTime()
+            : 0;
+
+        if (dataA && dataB && dataA !== dataB) {
+            return dataA - dataB;
+        }
+
+        return Number(a.id) - Number(b.id);
+    });
+}
+
+function encontrarConvidado(id) {
+    return convidados.find((convidado) => {
+        return String(convidado.id) === String(id);
+    });
+}
+
+/* =========================
+   CONTADORES E RENDERIZAÇÃO
+========================= */
 
 function renderizar() {
     const lista = ordenarConvidados(
@@ -372,30 +395,21 @@ function renderizar() {
         (convidado) => convidado.confirmado !== true
     );
 
-    const total = lista.length;
-
     const totalAcompanhantes = confirmados.reduce(
-        (soma, convidado) => soma + obterAcompanhantes(convidado),
+        (soma, convidado) => {
+            return soma + obterAcompanhantes(convidado);
+        },
         0
     );
 
-    const totalEvento = confirmados.length + totalAcompanhantes;
-
-    /*
-       SEM LIMITE DE CADASTRO.
-       O indicador de vagas fica como infinito.
-    */
-
-    const vagas = "∞";
-
     const contadores = {
-        contador: total,
-        total: total,
+        contador: lista.length,
+        total: lista.length,
         "total-confirmados": confirmados.length,
         "total-acompanhantes": totalAcompanhantes,
-        "total-evento": totalEvento,
+        "total-evento": confirmados.length + totalAcompanhantes,
         "total-pendentes": pendentes.length,
-        "total-vagas": vagas
+        "total-vagas": "∞"
     };
 
     Object.entries(contadores).forEach(([id, valor]) => {
@@ -409,11 +423,6 @@ function renderizar() {
     renderizarListaCompleta(lista);
     renderizarListaConfirmados(confirmados);
 
-    /*
-       Cadastro sempre habilitado.
-       Não existe bloqueio por quantidade de convidados.
-    */
-
     const input = obterCampo("nome");
     const botao = obterCampo("btn-salvar");
 
@@ -422,14 +431,19 @@ function renderizar() {
         input.placeholder = "Digite o nome completo";
     }
 
-    if (botao) {
+    if (botao && botao.dataset.salvando !== "true") {
         botao.disabled = false;
     }
 }
 
-/* =========================================================
-   RENDERIZAR LISTA COMPLETA
-========================================================= */
+function criarEstadoVazio(titulo, descricao) {
+    return `
+        <div class="lista-vazia">
+            <span>${escaparHTML(titulo)}</span>
+            <small>${escaparHTML(descricao)}</small>
+        </div>
+    `;
+}
 
 function renderizarListaCompleta(lista) {
     const elemento = obterCampo("lista-convidados");
@@ -441,7 +455,6 @@ function renderizarListaCompleta(lista) {
             "Nenhum convidado cadastrado.",
             "Adicione o primeiro convidado acima."
         );
-
         return;
     }
 
@@ -451,10 +464,6 @@ function renderizarListaCompleta(lista) {
         })
         .join("");
 }
-
-/* =========================================================
-   RENDERIZAR LISTA DE CONFIRMADOS
-========================================================= */
 
 function renderizarListaConfirmados(confirmados) {
     const elemento = obterCampo("lista-confirmados");
@@ -466,7 +475,6 @@ function renderizarListaConfirmados(confirmados) {
             "Nenhuma presença confirmada.",
             "Os convidados confirmados aparecerão aqui."
         );
-
         return;
     }
 
@@ -477,102 +485,49 @@ function renderizarListaConfirmados(confirmados) {
         .join("");
 }
 
-/* =========================================================
-   ESTADO VAZIO
-========================================================= */
-
-function criarEstadoVazio(titulo, descricao) {
-    return `
-        <div class="lista-vazia">
-            <span>${escaparHTML(titulo)}</span>
-            <small>${escaparHTML(descricao)}</small>
-        </div>
-    `;
-}
-
-/* =========================================================
-   TEXTO DE ACOMPANHANTES
-========================================================= */
-
-function textoAcompanhantes(quantidade) {
-    quantidade = Number(quantidade || 0);
-
-    if (quantidade === 0) return "";
-    if (quantidade === 1) return "1 acompanhante";
-
-    return `${quantidade} acompanhantes`;
-}
-
-/* =========================================================
-   LINHA — LISTA COMPLETA
-========================================================= */
+/* =========================
+   LINHA DA LISTA COMPLETA
+========================= */
 
 function criarLinhaConvidado(convidado, numero) {
     const confirmado = convidado.confirmado === true;
-
-    const quantidadeAcompanhantes = obterAcompanhantes(convidado);
-
-    const acompanhantesTexto = textoAcompanhantes(
-        quantidadeAcompanhantes
-    );
+    const acompanhantes = obterAcompanhantes(convidado);
+    const nomeSeguro = escaparHTML(convidado.nome);
+    const idSeguro = escaparHTML(convidado.id);
 
     const status = confirmado
-        ? `
-            <span class="status status-confirmado-row">
-                ✓ CONFIRMADO
-            </span>
-        `
-        : `
-            <span class="status status-pendente-row">
-                PENDENTE
-            </span>
-        `;
+        ? `<span class="status status-confirmado-row">✓ CONFIRMADO</span>`
+        : `<span class="status status-pendente-row">PENDENTE</span>`;
 
-    const acompanhanteBadge =
-        confirmado && quantidadeAcompanhantes > 0
-            ? `
-                <span class="status status-acompanhante-row">
-                    + ${escaparHTML(acompanhantesTexto)}
-                </span>
-            `
+    const badgeAcompanhantes =
+        confirmado && acompanhantes > 0
+            ? `<span class="status status-acompanhante-row">+ ${escaparHTML(textoAcompanhantes(acompanhantes))}</span>`
             : "";
 
-    const botaoConfirmacao = confirmado
+    const botoes = confirmado
         ? `
+            <button
+                type="button"
+                class="btn-editar"
+                data-acao="editar"
+                data-id="${idSeguro}"
+            >EDITAR</button>
+
             <button
                 type="button"
                 class="btn-desconfirmar"
                 data-acao="desconfirmar"
-                data-id="${escaparHTML(convidado.id)}"
-            >
-                DESCONFIRMAR
-            </button>
+                data-id="${idSeguro}"
+            >DESCONFIRMAR</button>
         `
         : `
             <button
                 type="button"
                 class="btn-confirmar"
                 data-acao="confirmar"
-                data-id="${escaparHTML(convidado.id)}"
-            >
-                CONFIRMAR PRESENÇA
-            </button>
+                data-id="${idSeguro}"
+            >CONFIRMAR PRESENÇA</button>
         `;
-
-    const textoAcompanhante =
-        confirmado && quantidadeAcompanhantes > 0
-            ? `
-                <small style="
-                    display:block;
-                    margin-top:5px;
-                    color:#d4af37;
-                    font-size:10px;
-                    font-weight:600;
-                ">
-                    + ${escaparHTML(acompanhantesTexto)}
-                </small>
-            `
-            : "";
 
     return `
         <article class="convidado">
@@ -582,58 +537,41 @@ function criarLinhaConvidado(convidado, numero) {
                 </span>
 
                 <div>
-                    <strong class="nome-convidado">
-                        ${escaparHTML(convidado.nome)}
-                    </strong>
-
-                    ${textoAcompanhante}
+                    <strong class="nome-convidado">${nomeSeguro}</strong>
+                    ${
+                        confirmado && acompanhantes > 0
+                            ? `<small style="display:block;margin-top:5px;color:#d4af37;font-size:10px;font-weight:600">+ ${escaparHTML(textoAcompanhantes(acompanhantes))}</small>`
+                            : ""
+                    }
                 </div>
             </div>
 
             <div class="acoes">
                 ${status}
-                ${acompanhanteBadge}
-                ${botaoConfirmacao}
+                ${badgeAcompanhantes}
+                ${botoes}
 
                 <button
                     type="button"
                     class="btn-remover"
                     data-acao="remover"
-                    data-id="${escaparHTML(convidado.id)}"
+                    data-id="${idSeguro}"
                     title="Remover convidado"
                     aria-label="Remover convidado"
-                >
-                    ×
-                </button>
+                >×</button>
             </div>
         </article>
     `;
 }
 
-/* =========================================================
-   LINHA — CONFIRMADOS
-========================================================= */
+/* =========================
+   LINHA DA LISTA CONFIRMADOS
+========================= */
 
 function criarLinhaConfirmado(convidado, numero) {
-    const quantidadeAcompanhantes = obterAcompanhantes(convidado);
-
-    const acompanhantesTexto = textoAcompanhantes(
-        quantidadeAcompanhantes
-    );
-
-    const textoAcompanhantesHTML =
-        quantidadeAcompanhantes === 0
-            ? "Sem acompanhantes"
-            : `+ ${escaparHTML(acompanhantesTexto)}`;
-
-    const acompanhanteBadge =
-        quantidadeAcompanhantes > 0
-            ? `
-                <span class="status status-acompanhante-row">
-                    + ${escaparHTML(acompanhantesTexto)}
-                </span>
-            `
-            : "";
+    const acompanhantes = obterAcompanhantes(convidado);
+    const nomeSeguro = escaparHTML(convidado.nome);
+    const idSeguro = escaparHTML(convidado.id);
 
     return `
         <article class="convidado">
@@ -643,18 +581,10 @@ function criarLinhaConfirmado(convidado, numero) {
                 </span>
 
                 <div>
-                    <strong class="nome-convidado">
-                        ${escaparHTML(convidado.nome)}
-                    </strong>
+                    <strong class="nome-convidado">${nomeSeguro}</strong>
 
-                    <small style="
-                        display:block;
-                        margin-top:5px;
-                        color:#d4af37;
-                        font-size:10px;
-                        font-weight:600;
-                    ">
-                        ${textoAcompanhantesHTML}
+                    <small style="display:block;margin-top:5px;color:#d4af37;font-size:10px;font-weight:600">
+                        ${escaparHTML(textoAcompanhantes(acompanhantes))}
                     </small>
                 </div>
             </div>
@@ -664,24 +594,27 @@ function criarLinhaConfirmado(convidado, numero) {
                     ✓ CONFIRMADO
                 </span>
 
-                ${acompanhanteBadge}
+                <button
+                    type="button"
+                    class="btn-editar"
+                    data-acao="editar"
+                    data-id="${idSeguro}"
+                >EDITAR</button>
 
                 <button
                     type="button"
                     class="btn-desconfirmar"
                     data-acao="desconfirmar"
-                    data-id="${escaparHTML(convidado.id)}"
-                >
-                    DESCONFIRMAR
-                </button>
+                    data-id="${idSeguro}"
+                >DESCONFIRMAR</button>
             </div>
         </article>
     `;
 }
 
-/* =========================================================
-   SALVAR CONVIDADO — SEM LIMITE
-========================================================= */
+/* =========================
+   SALVAR CONVIDADO
+========================= */
 
 async function salvarConvidado(nome) {
     if (!supabaseClient) {
@@ -696,15 +629,17 @@ async function salvarConvidado(nome) {
         return;
     }
 
+    if (nomeLimpo.length > 150) {
+        mostrarMensagem(
+            "O nome deve ter no máximo 150 caracteres.",
+            "erro"
+        );
+        return;
+    }
+
     const lista = convidadosDaAniversariante(
         aniversarianteAtual
     );
-
-    /*
-       Não há verificação de LIMITE.
-       O cadastro pode continuar independentemente
-       da quantidade de pessoas na lista.
-    */
 
     const duplicado = lista.some((convidado) => {
         return normalizar(convidado.nome) === normalizar(nomeLimpo);
@@ -715,7 +650,6 @@ async function salvarConvidado(nome) {
             "Este convidado já está cadastrado nesta lista.",
             "erro"
         );
-
         return;
     }
 
@@ -724,6 +658,7 @@ async function salvarConvidado(nome) {
 
     if (botao) {
         botao.disabled = true;
+        botao.dataset.salvando = "true";
         botao.textContent = "SALVANDO...";
     }
 
@@ -750,10 +685,9 @@ async function salvarConvidado(nome) {
             console.error("Erro ao salvar convidado:", error);
 
             mostrarMensagem(
-                "Não foi possível salvar. Verifique a conexão e as permissões do Supabase.",
+                "Não foi possível salvar. Verifique as permissões do Supabase.",
                 "erro"
             );
-
             return;
         }
 
@@ -772,9 +706,7 @@ async function salvarConvidado(nome) {
             "sucesso"
         );
 
-        if (input) {
-            input.focus();
-        }
+        if (input) input.focus();
     } catch (erro) {
         console.error("Erro ao salvar:", erro);
 
@@ -784,16 +716,170 @@ async function salvarConvidado(nome) {
         );
     } finally {
         if (botao) {
+            botao.dataset.salvando = "false";
             botao.textContent = textoOriginal || "SALVAR CONVIDADO";
+            botao.disabled = false;
+        }
+    }
+}
+
+/* =========================
+   EDITAR CONVIDADO CONFIRMADO
+========================= */
+
+async function editarConvidado(id) {
+    if (!supabaseClient) {
+        mostrarMensagem("Supabase não inicializado.", "erro");
+        return;
+    }
+
+    const convidado = encontrarConvidado(id);
+
+    if (!convidado) {
+        mostrarMensagem("Convidado não encontrado.", "erro");
+        return;
+    }
+
+    if (convidado.confirmado !== true) {
+        mostrarMensagem(
+            "A edição está disponível para convidados confirmados.",
+            "erro"
+        );
+        return;
+    }
+
+    const nomeDigitado = window.prompt(
+        "Edite o nome do convidado:",
+        convidado.nome
+    );
+
+    if (nomeDigitado === null) return;
+
+    const novoNome = nomeDigitado.trim();
+
+    if (!novoNome) {
+        mostrarMensagem("O nome não pode ficar vazio.", "erro");
+        return;
+    }
+
+    if (novoNome.length > 150) {
+        mostrarMensagem(
+            "O nome deve ter no máximo 150 caracteres.",
+            "erro"
+        );
+        return;
+    }
+
+    const duplicado = convidadosDaAniversariante(
+        convidado.aniversariante
+    ).some((item) => {
+        return (
+            String(item.id) !== String(id) &&
+            normalizar(item.nome) === normalizar(novoNome)
+        );
+    });
+
+    if (duplicado) {
+        mostrarMensagem(
+            "Já existe outro convidado com esse nome nesta lista.",
+            "erro"
+        );
+        return;
+    }
+
+    const acompanhantesDigitados = window.prompt(
+        "Quantos acompanhantes? Digite um número inteiro a partir de 0:",
+        String(obterAcompanhantes(convidado))
+    );
+
+    if (acompanhantesDigitados === null) return;
+
+    const valorAcompanhantes = acompanhantesDigitados.trim();
+
+    if (!/^\d+$/.test(valorAcompanhantes)) {
+        mostrarMensagem(
+            "Informe a quantidade de acompanhantes usando um número inteiro.",
+            "erro"
+        );
+        return;
+    }
+
+    const quantidade = Number(valorAcompanhantes);
+
+    if (!Number.isSafeInteger(quantidade) || quantidade < 0) {
+        mostrarMensagem(
+            "A quantidade de acompanhantes é inválida.",
+            "erro"
+        );
+        return;
+    }
+
+    if (operacoesEmAndamento.has(String(id))) return;
+
+    definirOperacao(id, true);
+    mostrarMensagem("Salvando alterações...");
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("convidados")
+            .update({
+                nome: novoNome,
+                acompanhantes: quantidade
+            })
+            .eq("id", id)
+            .eq("confirmado", true)
+            .select(`
+                id,
+                nome,
+                aniversariante,
+                confirmado,
+                acompanhantes,
+                created_at
+            `)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Erro ao editar convidado:", error);
+
+            mostrarMensagem(
+                "Não foi possível editar. Verifique as permissões UPDATE do Supabase.",
+                "erro"
+            );
+            return;
         }
 
+        if (!data) {
+            mostrarMensagem(
+                "Nenhuma alteração foi salva. Confira se o convidado ainda está confirmado e se as permissões permitem a edição.",
+                "erro"
+            );
+            await carregarConvidados();
+            return;
+        }
+
+        atualizarListaLocal(data);
+        renderizar();
+
+        mostrarMensagem(
+            `Os dados de ${data.nome} foram atualizados.`,
+            "sucesso"
+        );
+    } catch (erro) {
+        console.error("Erro ao editar:", erro);
+
+        mostrarMensagem(
+            "Ocorreu um erro ao editar o convidado.",
+            "erro"
+        );
+    } finally {
+        definirOperacao(id, false);
         renderizar();
     }
 }
 
-/* =========================================================
+/* =========================
    CONFIRMAR PRESENÇA
-========================================================= */
+========================= */
 
 async function confirmarPresenca(id) {
     const convidado = encontrarConvidado(id);
@@ -812,9 +898,9 @@ async function confirmarPresenca(id) {
     await atualizarConfirmacao(id, true);
 }
 
-/* =========================================================
+/* =========================
    DESCONFIRMAR PRESENÇA
-========================================================= */
+========================= */
 
 async function desconfirmarPresenca(id) {
     const convidado = encontrarConvidado(id);
@@ -833,9 +919,9 @@ async function desconfirmarPresenca(id) {
     await atualizarConfirmacao(id, false);
 }
 
-/* =========================================================
+/* =========================
    ATUALIZAR CONFIRMAÇÃO
-========================================================= */
+========================= */
 
 async function atualizarConfirmacao(id, confirmado) {
     if (!supabaseClient) {
@@ -843,11 +929,16 @@ async function atualizarConfirmacao(id, confirmado) {
         return;
     }
 
+    if (operacoesEmAndamento.has(String(id))) return;
+
+    definirOperacao(id, true);
+
     try {
         const { data, error } = await supabaseClient
             .from("convidados")
             .update({
-                confirmado: confirmado
+                confirmado,
+                ...(confirmado ? {} : { acompanhantes: 0 })
             })
             .eq("id", id)
             .select(`
@@ -869,18 +960,10 @@ async function atualizarConfirmacao(id, confirmado) {
                     : "Não foi possível retirar a confirmação.",
                 "erro"
             );
-
             return;
         }
 
-        const indice = convidados.findIndex((item) => {
-            return String(item.id) === String(id);
-        });
-
-        if (indice !== -1) {
-            convidados[indice] = data;
-        }
-
+        atualizarListaLocal(data);
         renderizar();
 
         mostrarMensagem(
@@ -896,12 +979,15 @@ async function atualizarConfirmacao(id, confirmado) {
             "Erro ao atualizar a confirmação.",
             "erro"
         );
+    } finally {
+        definirOperacao(id, false);
+        renderizar();
     }
 }
 
-/* =========================================================
+/* =========================
    REMOVER CONVIDADO
-========================================================= */
+========================= */
 
 async function removerConvidado(id) {
     if (!supabaseClient) {
@@ -917,25 +1003,37 @@ async function removerConvidado(id) {
     }
 
     const desejaRemover = window.confirm(
-        `Deseja remover ${convidado.nome} da lista?`
+        `Deseja remover ${convidado.nome} da lista? Esta ação não pode ser desfeita.`
     );
 
     if (!desejaRemover) return;
 
+    if (operacoesEmAndamento.has(String(id))) return;
+
+    definirOperacao(id, true);
+
     try {
-        const { error } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("convidados")
             .delete()
-            .eq("id", id);
+            .eq("id", id)
+            .select("id");
 
         if (error) {
             console.error("Erro ao remover:", error);
 
             mostrarMensagem(
-                "Não foi possível remover o convidado.",
+                "Não foi possível remover. Verifique as permissões DELETE do Supabase.",
                 "erro"
             );
+            return;
+        }
 
+        if (!data || data.length === 0) {
+            mostrarMensagem(
+                "O convidado não foi removido. Verifique as permissões do Supabase.",
+                "erro"
+            );
             return;
         }
 
@@ -956,26 +1054,17 @@ async function removerConvidado(id) {
             "Erro ao remover o convidado.",
             "erro"
         );
+    } finally {
+        definirOperacao(id, false);
+        renderizar();
     }
 }
 
-/* =========================================================
-   ENCONTRAR CONVIDADO
-========================================================= */
-
-function encontrarConvidado(id) {
-    return convidados.find((convidado) => {
-        return String(convidado.id) === String(id);
-    });
-}
-
-/* =========================================================
-   CONFIGURAR EVENTOS
-========================================================= */
+/* =========================
+   EVENTOS DA PÁGINA
+========================= */
 
 function configurarEventos() {
-    /* Abas dos aniversariantes */
-
     document.querySelectorAll(".tab").forEach((botao) => {
         botao.addEventListener("click", () => {
             selecionarAniversariante(
@@ -983,8 +1072,6 @@ function configurarEventos() {
             );
         });
     });
-
-    /* Formulário de cadastro */
 
     const formulario = obterCampo("form-convidado");
 
@@ -1000,8 +1087,6 @@ function configurarEventos() {
         });
     }
 
-    /* Ações das listas */
-
     document.addEventListener("click", (evento) => {
         const alvo = evento.target;
 
@@ -1009,9 +1094,7 @@ function configurarEventos() {
 
         const botao = alvo.closest("[data-acao]");
 
-        if (!botao) return;
-
-        if (botao.disabled) return;
+        if (!botao || botao.disabled) return;
 
         const acao = botao.dataset.acao;
         const id = botao.dataset.id;
@@ -1022,15 +1105,17 @@ function configurarEventos() {
             confirmarPresenca(id);
         } else if (acao === "desconfirmar") {
             desconfirmarPresenca(id);
+        } else if (acao === "editar") {
+            editarConvidado(id);
         } else if (acao === "remover") {
             removerConvidado(id);
         }
     });
 }
 
-/* =========================================================
-   INICIALIZAÇÃO DA PÁGINA
-========================================================= */
+/* =========================
+   INICIALIZAÇÃO
+========================= */
 
 function inicializarPagina() {
     configurarProtecao();
